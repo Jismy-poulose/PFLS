@@ -8,7 +8,7 @@ avg_seq_len=$((total_length_of_seq/num_seq))
 gc=$(grep -v '>' $FASTA|awk '{gc_count += gsub(/[GgCc]/, "", $1)} END {print gc_count}')
 gc_cont=$(($gc*100/$total_length_of_seq))
 if [ "$START" == '>' ] ; then
-  echo "FASTA File Statistics"
+  echo "FASTA File Statistics:"
   echo "---------------------"
   echo "Number of sequences: $num_seq"
   echo "Total length of sequences: $total_length_of_seq"

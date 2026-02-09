@@ -13,7 +13,7 @@ if [ "$START" == '>' ] ; then
   else 
   echo "This is not a FASTA file" 
 fi
- echo "Number of sequences:$num_seq"  
+ echo "Number of sequences: $num_seq"  
  echo "Total length of sequences: $total_length_of_seq"
 if [ ["$len_long_seq" -gt '0' && "$len_short_seq" -gt '0'] ] ; then
   echo "Length of the longest sequence: $len_long_seq"

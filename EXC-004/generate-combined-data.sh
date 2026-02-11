@@ -95,24 +95,45 @@ for dir in "$RAW_DIR"/DNA*; do
 done
 
 # ---------------------------
-# 5️⃣ Reformat FASTA headers
+# 5️⃣ Fix FASTA headers
 # ---------------------------
-echo "Reformatting FASTA headers..."
-for fasta in "$COMBINED_DIR"/*.fa; do
-    culture_label=$(basename "$fasta" .fa)
-    serial=1
-    tmpfile=$(mktemp)
+echo "Fixing all FASTA headers..."
 
-    while IFS= read -r line; do
+for fasta in "$COMBINED_DIR"/*.fa "$COMBINED_DIR"/*.fasta; do
+    [[ -f "$fasta" ]] || continue
+    filename=$(basename "$fasta")
+
+    # Extract culture
+    culture="${filename%%_*}"
+
+    # Extract type
+    if [[ "$filename" =~ (MAG|BIN|UNBINNED) ]]; then
+        type="${BASH_REMATCH[1]}"
+    else
+        type="UNKNOWN"
+    fi
+
+    # Extract bin number safely (decimal)
+    if [[ "$filename" =~ ${type}_([0-9]{1,3}) ]]; then
+        binnum=$(printf "%03d" $((10#${BASH_REMATCH[1]})))
+    else
+        binnum="001"
+    fi
+
+    tmpfile=$(mktemp)
+    seq=1
+
+    while IFS= read -r line || [[ -n "$line" ]]; do
         if [[ "$line" == ">"* ]]; then
-            echo ">${culture_label}_${serial}" >> "$tmpfile"
-            ((serial++))
+            printf ">%s_%s_%s_%04d\n" "$culture" "$type" "$binnum" "$seq" >> "$tmpfile"
+            ((seq++))
         else
-            echo "$line" >> "$tmpfile"
+            printf "%s\n" "$line" >> "$tmpfile"
         fi
     done < "$fasta"
 
     mv "$tmpfile" "$fasta"
+    echo "  Headers fixed in $filename, total sequences: $seq"
 done
 
-echo "All DNA folders processed. Combined data is in $COMBINED_DIR"
+echo "All FASTA headers are now standardized."

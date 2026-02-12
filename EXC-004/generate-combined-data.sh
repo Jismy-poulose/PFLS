@@ -2,9 +2,13 @@
 set -euo pipefail
 
 # ---------------------------
+# Debug mode (optional, shows commands as they run)
+# ---------------------------
+#set -x  
+
+# ---------------------------
 # 1️⃣ Set directories
 # ---------------------------
-# Base directory can be passed as first argument, defaults to current directory
 BASE_DIR="${1:-.}"
 RAW_DIR="$BASE_DIR/RAW-DATA"
 COMBINED_DIR="$BASE_DIR/COMBINED-DATA"
@@ -16,9 +20,11 @@ shopt -s nullglob
 # ---------------------------
 # 2️⃣ Load sample translation
 # ---------------------------
+# Bash associative array (works in bash >=4)
 declare -A SAMPLE_MAP
+
 if [[ -f "$TRANS_FILE" ]]; then
-    while IFS=$'\t' read -r lib culture _rest; do
+    while read -r lib culture _rest; do
         SAMPLE_MAP["$lib"]="$culture"
     done < <(tail -n +2 "$TRANS_FILE")
 else
@@ -67,7 +73,7 @@ for dir in "$RAW_DIR"/DNA*; do
         filename=$(basename "$fasta")
 
         # Handle unbinned
-        if [[ "$filename" =~ [Uu][Nn][Bb][Ii][Nn][Nn][Ee][Dd] ]]; then
+        if [[ "$filename" == *unbinned* || "$filename" == *UNBINNED* ]]; then
             cp "$fasta" "$COMBINED_DIR/${culture}_UNBINNED.fa"
             echo "  Copied unbinned: $filename -> ${culture}_UNBINNED.fa"
             continue
@@ -108,20 +114,21 @@ for dir in "$RAW_DIR"/DNA*; do
 done
 
 # ---------------------------
-# 5️⃣ Fix FASTA headers
+# 5️⃣ Reformat FASTA headers
 # ---------------------------
 echo "Fixing FASTA headers..."
 for fasta in "$COMBINED_DIR"/*.fa "$COMBINED_DIR"/*.fasta; do
     [[ -f "$fasta" ]] || continue
     filename=$(basename "$fasta")
 
-    # Extract info
     culture="${filename%%_*}"
-    type=$(echo "$filename" | grep -oP '(MAG|BIN|UNBINNED)')
-    binnum=$(echo "$filename" | grep -oP '(MAG|BIN)_[0-9]{3}' | cut -d'_' -f2 || echo "000")
+
+    # Use portable grep (no -P)
+    type=$(echo "$filename" | grep -oE 'MAG|BIN|UNBINNED')
+    binnum=$(echo "$filename" | grep -oE '(MAG|BIN)_[0-9]{3}' | cut -d'_' -f2 || echo "000")
 
     seq=1
-    tmpfile=$(mktemp)
+    tmpfile=$(mktemp "${TMPDIR:-/tmp}/tmp.XXXXXX")
 
     awk -v prefix="$culture" -v type="$type" -v bin="$binnum" -v seq_start="$seq" '
     BEGIN { RS=">"; ORS="" }

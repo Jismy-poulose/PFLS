@@ -18,7 +18,7 @@ shopt -s nullglob
 # ---------------------------
 declare -A SAMPLE_MAP
 if [[ -f "$TRANS_FILE" ]]; then
-    while read -r lib culture _rest; do
+    while IFS=$'\t' read -r lib culture _rest; do
         SAMPLE_MAP["$lib"]="$culture"
     done < <(tail -n +2 "$TRANS_FILE")
 else
@@ -67,7 +67,7 @@ for dir in "$RAW_DIR"/DNA*; do
         filename=$(basename "$fasta")
 
         # Handle unbinned
-        if [[ "$filename" == *unbinned* || "$filename" == *UNBINNED* ]]; then
+        if [[ "$filename" =~ [Uu][Nn][Bb][Ii][Nn][Nn][Ee][Dd] ]]; then
             cp "$fasta" "$COMBINED_DIR/${culture}_UNBINNED.fa"
             echo "  Copied unbinned: $filename -> ${culture}_UNBINNED.fa"
             continue
@@ -108,13 +108,13 @@ for dir in "$RAW_DIR"/DNA*; do
 done
 
 # ---------------------------
-# 5️⃣ Reformat FASTA headers
+# 5️⃣ Fix FASTA headers
 # ---------------------------
 echo "Fixing FASTA headers..."
 for fasta in "$COMBINED_DIR"/*.fa "$COMBINED_DIR"/*.fasta; do
     [[ -f "$fasta" ]] || continue
     filename=$(basename "$fasta")
-    
+
     # Extract info
     culture="${filename%%_*}"
     type=$(echo "$filename" | grep -oP '(MAG|BIN|UNBINNED)')
